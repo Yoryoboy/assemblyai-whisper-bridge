@@ -1,0 +1,9 @@
+# Local agent/runtime state
+.atl/
+.codegraph/
+
+# Local secrets (project .env placeholder stays untracked)
+.env
+
+# Local build output (documented `go build -o` target)
+assemblyai-whisper-bridge
