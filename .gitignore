@@ -7,3 +7,7 @@
 
 # Local build output (documented `go build -o` target)
 assemblyai-whisper-bridge
+
+# Transient archify browser-evidence sidecars: regenerated on demand and they
+# embed absolute machine paths.
+docs/*.visual-check.*

@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "Dictado: de tu voz a la pantalla",
+    "output": "docs/dictation-flow.html",
+    "viewBox": [1080, 560],
+    "quality_profile": "showcase",
+    "column_fit": "spread"
+  },
+  "participants": [
+    { "id": "user", "type": "external", "label": "Vos", "sublabel": "micrófono" },
+    { "id": "compositor", "type": "frontend", "label": "Hyprland", "sublabel": "SUPER + H" },
+    { "id": "voxtype", "type": "backend", "label": "Voxtype", "sublabel": "daemon" },
+    { "id": "bridge", "type": "backend", "label": "Bridge Go", "sublabel": "127.0.0.1:8787" },
+    { "id": "assemblyai", "type": "cloud", "label": "AssemblyAI", "sublabel": "Universal-3.5" },
+    { "id": "pi", "type": "backend", "label": "Pi CLI", "sublabel": "pi -p --model" },
+    { "id": "driver", "type": "frontend", "label": "Driver", "sublabel": "wtype/wl-copy" },
+    { "id": "app", "type": "external", "label": "App activa", "sublabel": "tu pantalla" }
+  ],
+  "segments": [
+    { "from": 148, "to": 214, "label": "Disparo y grabación" },
+    { "from": 222, "to": 350, "label": "Transcripción" },
+    { "from": 358, "to": 414, "label": "Post-proceso (hoy off)" },
+    { "from": 422, "to": 482, "label": "Salida" }
+  ],
+  "messages": [
+    { "from": "user", "to": "compositor", "y": 162, "label": "Presiona SUPER + H", "variant": "emphasis" },
+    { "from": "compositor", "to": "voxtype", "y": 196, "label": "voxtype record toggle", "variant": "emphasis" },
+    { "from": "voxtype", "to": "bridge", "y": 230, "label": "POST /v1/audio/transcriptions · WAV 16 kHz", "variant": "emphasis" },
+    { "from": "bridge", "to": "assemblyai", "y": 264, "label": "POST /transcribe · multipart", "variant": "emphasis" },
+    { "from": "assemblyai", "to": "bridge", "y": 298, "label": "200 · { text }", "variant": "return" },
+    { "from": "bridge", "to": "voxtype", "y": 332, "label": "200 · { text }", "variant": "return" },
+    { "from": "voxtype", "to": "pi", "y": 366, "label": "texto por stdin · perfil activo", "variant": "dashed" },
+    { "from": "pi", "to": "voxtype", "y": 400, "label": "texto reformulado por stdout", "variant": "dashed" },
+    { "from": "voxtype", "to": "driver", "y": 434, "label": "texto final · replacements", "variant": "emphasis" },
+    { "from": "driver", "to": "app", "y": 468, "label": "tipear (wtype) o copiar (wl-copy)", "variant": "emphasis" }
+  ],
+  "activations": [
+    { "participant": "compositor", "from": 156, "to": 204, "type": "frontend" },
+    { "participant": "voxtype", "from": 188, "to": 238, "type": "backend" },
+    { "participant": "bridge", "from": 222, "to": 340, "type": "backend" },
+    { "participant": "assemblyai", "from": 256, "to": 306, "type": "cloud" },
+    { "participant": "voxtype", "from": 324, "to": 442, "type": "backend" },
+    { "participant": "pi", "from": 358, "to": 408, "type": "backend" },
+    { "participant": "driver", "from": 426, "to": 476, "type": "frontend" },
+    { "participant": "app", "from": 460, "to": 478, "type": "external" }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Qué corre en tu máquina",
+      "items": [
+        "El daemon de Voxtype es un service de usuario (systemd --user)",
+        "Captura el micrófono a 16 kHz mono y dibuja el OSD con la onda",
+        "El bridge Go escucha sólo en 127.0.0.1:8787 y sale a AssemblyAI"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Por qué el corte está en 110 s",
+      "items": [
+        "AssemblyAI Sync acepta entre 80 ms y 120 s de audio por request",
+        "max_duration_secs = 110 deja margen bajo ese techo",
+        "No hay aviso previo: para más de 120 s hace falta Pre-recorded (async)"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "Dónde entra Pi (a implementar)",
+      "items": [
+        "Voxtype lanza el comando del perfil y le pasa el texto por stdin",
+        "pi -p elige proveedor y modelo por invocación: --provider y --model",
+        "type escribe con wtype (type_delay_ms = 0); clipboard usa wl-copy"
+      ]
+    }
+  ]
+}
