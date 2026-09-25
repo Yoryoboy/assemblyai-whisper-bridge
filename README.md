@@ -317,3 +317,78 @@ account, whereas the author holds free AssemblyAI credits.
 - AssemblyAI Sync STT: `https://sync.assemblyai.com/transcribe`
 - AssemblyAI pre-recorded v2: `POST /v2/transcript` + polling
 - Omarchy integration: `omarchy voxtype install|config|model|remove|status`
+
+---
+
+## 9. Smart dictation profile
+
+Raw dictation is verbatim. The `smart` profile adds a second, explicit path where the same
+audio can carry an instruction and produce a finished piece of writing.
+
+Two shortcuts, two different jobs:
+
+| Shortcut | Command | Behavior |
+|---|---|---|
+| `SUPER + H` | `voxtype record toggle` | Raw. Unchanged, never depends on a model. |
+| `SUPER + SHIFT + H` | `voxtype record toggle --profile smart` | Runs the dictation through the Pi CLI. |
+
+### How the instruction travels
+
+Voxtype normalises two spoken labels before the model ever sees the text, so the marker
+survives speech-to-text reliably:
+
+| Spoken | Becomes |
+|---|---|
+| `clave instrucciones` | `INSTRUCCIONES:` |
+| `clave contexto` | `CONTEXTO:` |
+
+`INSTRUCCIONES:` says what to do. `CONTEXTO:` carries who it is for, why, tone and language.
+Everything after them is the body to transform. Without `INSTRUCCIONES:` the profile does
+not restructure anything: it only fixes punctuation and capitalization.
+
+Always-on rules: never invent facts, never use em or en dashes, never adopt AI tells
+(hollow openings, generic closings, filler transitions, decorative bullets, emojis), and
+change less when in doubt.
+
+### Why these pieces
+
+- **Paste output.** The result is copied to the clipboard and then pasted with the paste
+  keys, so nothing is typed character by character and a markdown response cannot corrupt an
+  editor mid-keystroke. The clipboard keeps the text afterwards, which also gives you a
+  fallback if the paste does not land.
+- **`text.filter_filler_words` owns fillers.** It runs before `replacements` and before the
+  model, and it covers the raw shortcut too. The model never touches fillers.
+- **`VOXTYPE_CONTEXT` is deliberately ignored.** That variable carries the previous
+  dictation; with a label protocol it would be misread as content.
+- **Failures degrade silently.** If the wrapper exits non-zero, Voxtype falls back to the
+  raw transcription.
+- **`--no-extensions` is never passed.** The `opencode-go` provider is extension-provided.
+
+### Installing on a machine
+
+```bash
+./voxtype/install-smart-profile.sh
+```
+
+The installer verifies prerequisites and refuses to touch anything if one is missing, backs
+up `config.toml`, applies its keys, deploys the wrapper to
+`~/.config/voxtype/voxtype-smart.sh`, and reads the result back to assert it. It is
+idempotent.
+
+It then prints the Hyprland binding to add and the restart command. Prerequisites: Voxtype,
+the `pi` CLI authenticated against `opencode-go`, and the bridge listening on
+`127.0.0.1:8787` with `ASSEMBLYAI_API_KEY` in `.env`.
+
+### What stays out of this repository
+
+The AssemblyAI API key, the Pi credentials and your identity. The signature rule activates
+only when `~/.config/voxtype/identity.env` exists locally (see
+`voxtype/identity.env.example`); without that file the profile never signs anything.
+
+### Configuration keys the installer owns
+
+`audio.feedback.enabled`, `audio.feedback.theme`, `audio.max_duration_secs` and
+`text.replacements.<from>` go through `voxtype config set`, which validates them. The
+remaining keys are not in that CLI allowlist and are edited in place inside their existing
+tables: `output.type_delay_ms`, `text.filler_words` (the array replaces the whole list, so
+the defaults are restated) and the managed `[profiles.smart]` block.
